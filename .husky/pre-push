@@ -1,0 +1,19 @@
+#!/usr/bin/env sh
+set -e
+
+# Format before every push.
+npm run format
+
+# If formatting changed files, block the push so you can commit the result.
+if ! git diff --quiet; then
+  echo "Prettier updated files. Please commit the changes before pushing."
+  exit 1
+fi
+
+# Verify the push with a build (only if this repo has a Vite entry HTML).
+if [ -f "index.html" ]; then
+  npm run build
+else
+  echo "Skipping build: index.html not found at repo root."
+fi
+
