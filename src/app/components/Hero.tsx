@@ -78,7 +78,7 @@ export function Hero() {
               </button>
               <button
                 onClick={() => setIsContactModalOpen(true)}
-                className="w-full sm:w-auto px-6 py-3 border border-[#ff6600]/30 text-[#ff6600] rounded-lg hover:bg-[#ff6600]/10 transition-all duration-300"
+                className="w-full sm:w-auto px-6 py-3 border-3 border-[#ff6600]/30 text-[#ff6600] rounded-lg hover:bg-[#ff6600]/10 transition-all duration-300"
               >
                 Contact Me
               </button>

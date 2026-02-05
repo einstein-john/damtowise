@@ -42,7 +42,7 @@ export function ContactModal({ isOpen, onClose }: ContactModalProps) {
       icon: Phone,
       label: 'Call',
       value: '+90 533 877 30 01',
-      href: 'https://wa.me/905338773001',
+      href: 'https://tel:+905338773001',
       color: '#25D366',
     },
     {
