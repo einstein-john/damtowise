@@ -1,17 +1,25 @@
 import React from 'react';
+import { usePostHog } from '@posthog/react';
 import { TerminalWindow } from './TerminalWindow';
 import PixelBlast from './PixelBlast';
 import { ContactModal } from './ContactModal';
 import { ArrowRight } from 'lucide-react';
 
 export function Hero() {
+  const posthog = usePostHog();
   const [isContactModalOpen, setIsContactModalOpen] = React.useState(false);
 
   const scrollToProjects = () => {
+    posthog?.capture('view_projects_clicked');
     const projectsSection = document.getElementById('projects');
     if (projectsSection) {
       projectsSection.scrollIntoView({ behavior: 'smooth' });
     }
+  };
+
+  const openContactModal = () => {
+    posthog?.capture('contact_modal_opened');
+    setIsContactModalOpen(true);
   };
 
   return (
@@ -77,7 +85,7 @@ export function Hero() {
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </button>
               <button
-                onClick={() => setIsContactModalOpen(true)}
+                onClick={openContactModal}
                 className="w-full sm:w-auto px-6 py-3 border-3 border-[#ff6600]/30 text-[#ff6600] rounded-lg hover:bg-[#ff6600]/10 transition-all duration-300"
               >
                 Contact Me

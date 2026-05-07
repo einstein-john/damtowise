@@ -1,4 +1,5 @@
 import React from 'react';
+import { usePostHog } from '@posthog/react';
 import { X, Mail, Instagram, Linkedin, MessageCircle, Github, Twitter, Phone } from 'lucide-react';
 
 interface ContactModalProps {
@@ -7,6 +8,8 @@ interface ContactModalProps {
 }
 
 export function ContactModal({ isOpen, onClose }: ContactModalProps) {
+  const posthog = usePostHog();
+
   if (!isOpen) return null;
 
   const contactMethods = [
@@ -90,6 +93,12 @@ export function ContactModal({ isOpen, onClose }: ContactModalProps) {
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-4 p-4 bg-black/50 border border-[#333] rounded-xl hover:border-[#ff6600]/50 hover:bg-[#ff6600]/5 transition-all duration-300 group"
+                  onClick={() =>
+                    posthog?.capture('contact_method_clicked', {
+                      method: method.label,
+                      href: method.href,
+                    })
+                  }
                 >
                   <div
                     className="p-3 rounded-lg transition-colors"

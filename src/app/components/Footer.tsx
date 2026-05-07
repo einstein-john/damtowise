@@ -1,7 +1,9 @@
 import React from 'react';
+import { usePostHog } from '@posthog/react';
 import { Github, Linkedin, Mail, Twitter } from 'lucide-react';
 
 export function Footer() {
+  const posthog = usePostHog();
   const socialLinks = [
     {
       name: 'GitHub',
@@ -43,6 +45,9 @@ export function Footer() {
                 rel={link.url.startsWith('http') ? 'noopener noreferrer' : undefined}
                 className="w-10 h-10 flex items-center justify-center border border-[#333] rounded-lg text-[#999] hover:border-[#ff6600] hover:text-[#ff6600] transition-all duration-300"
                 aria-label={link.name}
+                onClick={() =>
+                  posthog?.capture('footer_social_clicked', { platform: link.name, href: link.url })
+                }
               >
                 {link.icon}
               </a>

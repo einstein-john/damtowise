@@ -1,4 +1,5 @@
 import React from 'react';
+import { usePostHog } from '@posthog/react';
 import { DataFlowIcon, BranchFlowIcon, ApiFlowIcon } from '@/app/components/LogicFlowIcons';
 import { Github } from 'lucide-react';
 
@@ -21,6 +22,7 @@ interface ProjectEntry {
 }
 
 function ProjectCard({ title, description, icon, tags, link, githubLink }: ProjectCardProps) {
+  const posthog = usePostHog();
   const liveHref = link && link !== '#' ? link : undefined;
   const codeHref = githubLink && githubLink !== '#' ? githubLink : undefined;
   const cardHref = liveHref ?? codeHref;
@@ -37,6 +39,13 @@ function ProjectCard({ title, description, icon, tags, link, githubLink }: Proje
           rel="noopener noreferrer"
           className="absolute inset-0 z-10 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-[#ff6600] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0a0a]"
           aria-label={`Open ${title}`}
+          onClick={() =>
+            posthog?.capture('project_link_clicked', {
+              project_title: title,
+              destination: liveHref ? 'live' : 'github',
+              href: cardHref,
+            })
+          }
         />
       )}
 
@@ -71,6 +80,14 @@ function ProjectCard({ title, description, icon, tags, link, githubLink }: Proje
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 text-[#999] hover:text-[#ff6600] transition-colors duration-300"
+              onClick={(e) => {
+                e.stopPropagation();
+                posthog?.capture('project_link_clicked', {
+                  project_title: title,
+                  destination: 'github',
+                  href: secondHref,
+                });
+              }}
             >
               <Github className="w-4 h-4" />
               Code
