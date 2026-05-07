@@ -1,9 +1,5 @@
 import React from 'react';
-import {
-  DataFlowIcon,
-  BranchFlowIcon,
-  ApiFlowIcon,
-} from '@/app/components/LogicFlowIcons';
+import { DataFlowIcon, BranchFlowIcon, ApiFlowIcon } from '@/app/components/LogicFlowIcons';
 import { Github } from 'lucide-react';
 
 interface ProjectCardProps {
@@ -29,8 +25,7 @@ function ProjectCard({ title, description, icon, tags, link, githubLink }: Proje
   const codeHref = githubLink && githubLink !== '#' ? githubLink : undefined;
   const cardHref = liveHref ?? codeHref;
   /** When both URLs differ, overlay links to primary; elevated link goes to repo. */
-  const secondHref =
-    liveHref && codeHref && liveHref !== codeHref ? codeHref : undefined;
+  const secondHref = liveHref && codeHref && liveHref !== codeHref ? codeHref : undefined;
 
   return (
     <div className="group bg-[#0a0a0a] border border-[#333] rounded-lg relative overflow-hidden transition-all duration-300 hover:border-[#ff6600]">
