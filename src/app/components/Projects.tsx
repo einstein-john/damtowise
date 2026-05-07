@@ -2,10 +2,9 @@ import React from 'react';
 import {
   DataFlowIcon,
   BranchFlowIcon,
-  LoopFlowIcon,
   ApiFlowIcon,
 } from '@/app/components/LogicFlowIcons';
-import { ArrowUpRight, Github } from 'lucide-react';
+import { Github } from 'lucide-react';
 
 interface ProjectCardProps {
   title: string;
@@ -16,27 +15,49 @@ interface ProjectCardProps {
   githubLink?: string;
 }
 
-function ProjectCard({ title, description, icon, tags, link, githubLink }: ProjectCardProps) {
-  return (
-    <div className="group bg-[#0a0a0a] border border-[#333] rounded-lg p-6 hover:border-[#ff6600] transition-all duration-300 relative overflow-hidden">
-      {/* Hover gradient effect */}
-      <div className="absolute inset-0 bg-gradient-to-br from-[#ff6600]/0 via-transparent to-[#ff6600]/0 group-hover:from-[#ff6600]/5 group-hover:to-[#ff6600]/10 transition-all duration-300"></div>
+interface ProjectEntry {
+  title: string;
+  description: string;
+  icon: React.ReactNode;
+  tags: string[];
+  link?: string;
+  githubLink?: string;
+}
 
-      <div className="relative z-10 space-y-4">
-        {/* Icon */}
+function ProjectCard({ title, description, icon, tags, link, githubLink }: ProjectCardProps) {
+  const liveHref = link && link !== '#' ? link : undefined;
+  const codeHref = githubLink && githubLink !== '#' ? githubLink : undefined;
+  const cardHref = liveHref ?? codeHref;
+  /** When both URLs differ, overlay links to primary; elevated link goes to repo. */
+  const secondHref =
+    liveHref && codeHref && liveHref !== codeHref ? codeHref : undefined;
+
+  return (
+    <div className="group bg-[#0a0a0a] border border-[#333] rounded-lg relative overflow-hidden transition-all duration-300 hover:border-[#ff6600]">
+      {/* Full-card hit area (primary destination) */}
+      {cardHref && (
+        <a
+          href={cardHref}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="absolute inset-0 z-10 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-[#ff6600] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0a0a]"
+          aria-label={`Open ${title}`}
+        />
+      )}
+
+      <div className="absolute inset-0 bg-gradient-to-br from-[#ff6600]/0 via-transparent to-[#ff6600]/0 group-hover:from-[#ff6600]/5 group-hover:to-[#ff6600]/10 transition-all duration-300 pointer-events-none" />
+
+      <div className="relative z-[1] p-6 space-y-4">
         <div className="w-20 h-20 flex items-center justify-center text-[#999] group-hover:text-[#ff6600] transition-colors duration-300">
           {icon}
         </div>
 
-        {/* Title */}
         <h3 className="text-2xl group-hover:text-[#ff6600] transition-colors duration-300">
           {title}
         </h3>
 
-        {/* Description */}
         <p className="text-[#999] leading-relaxed">{description}</p>
 
-        {/* Tags */}
         <div className="flex flex-wrap gap-2 pt-2">
           {tags.map((tag) => (
             <span
@@ -48,69 +69,54 @@ function ProjectCard({ title, description, icon, tags, link, githubLink }: Proje
           ))}
         </div>
 
-        {/* Links */}
-        <div className="flex gap-3 pt-2">
-          {link && (
-            <button className="flex items-center gap-2 text-[#ff6600] hover:gap-3 transition-all duration-300">
-              View Project
-              <ArrowUpRight className="w-4 h-4" />
-            </button>
-          )}
-          {githubLink && (
-            <button className="flex items-center gap-2 text-[#999] hover:text-[#ff6600] transition-colors duration-300">
+        {secondHref && (
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pt-2 relative z-20">
+            <a
+              href={secondHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 text-[#999] hover:text-[#ff6600] transition-colors duration-300"
+            >
               <Github className="w-4 h-4" />
               Code
-            </button>
-          )}
-        </div>
+            </a>
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
 export function Projects() {
-  const projects = [
+  const projects: ProjectEntry[] = [
     {
-      title: 'API Gateway System',
+      title: 'API Scanner',
       description:
-        'Built a scalable API gateway handling 10K+ requests/min with rate limiting, authentication, and request transformation.',
+        'Tooling to probe and catalog REST and OpenAPI endpoints—discovery, sanity checks, and quick visibility into surface area for backends you own or integrate with.',
       icon: <ApiFlowIcon className="w-full h-full" />,
-      tags: ['TypeScript', 'Node.js', 'Redis', 'REST API'],
-      link: '#',
-      githubLink: '#',
+      tags: ['REST', 'OpenAPI', 'Automation', 'Backend tooling'],
+      link: 'https://scan.damtowise.xyz',
     },
     {
-      title: 'Workflow Automation Platform',
+      title: "Mustafa's website",
       description:
-        'Designed and implemented custom n8n workflows automating data synchronization across multiple services.',
+        'Marketing and portfolio presence for Mustafa—layout, typography, responsive structure, and performant delivery for client-facing content.',
       icon: <BranchFlowIcon className="w-full h-full" />,
-      tags: ['n8n', 'Webhooks', 'Integration', 'Automation'],
-      link: '#',
-      githubLink: '#',
+      tags: ['Web', 'UI', 'Responsive', 'Client project'],
+      link: 'https://mustafa-tech.com',
     },
     {
-      title: 'Data Pipeline Processor',
+      title: 'Compressor service',
       description:
-        'Created ETL pipelines processing millions of records daily with error handling and data validation.',
+        'Compress PDFs and videos, and convert images to WebP—lighter files and faster loads without juggling separate tools.',
       icon: <DataFlowIcon className="w-full h-full" />,
-      tags: ['Node.js', 'PostgreSQL', 'Queue', 'ETL'],
-      link: '#',
-      githubLink: '#',
-    },
-    {
-      title: 'Real-time Event System',
-      description:
-        'Developed event-driven architecture with WebSocket support for real-time data streaming and notifications.',
-      icon: <LoopFlowIcon className="w-full h-full" />,
-      tags: ['WebSocket', 'Event-Driven', 'TypeScript', 'Scalability'],
-      link: '#',
-      githubLink: '#',
+      tags: ['PDF', 'Video', 'WebP', 'Compression'],
+      link: 'https://comp.damtowise.xyz',
     },
   ];
 
   return (
     <section id="projects" className="py-20 px-6 relative">
-      {/* Section divider with gradient */}
       <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#ff6600] to-transparent"></div>
 
       <div className="max-w-7xl mx-auto">
@@ -119,7 +125,7 @@ export function Projects() {
             Featured <span className="text-[#ff6600]">Projects</span>
           </h2>
           <p className="text-[#999] text-lg max-w-2xl mx-auto">
-            A showcase of automation systems and backend solutions I've architected and built
+            Automation and backend work, plus selected tools and client sites I've shipped
           </p>
         </div>
 
