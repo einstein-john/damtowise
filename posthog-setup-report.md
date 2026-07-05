@@ -1,7 +1,7 @@
 <wizard-report>
 # PostHog post-wizard report
 
-The wizard has completed a deep integration of PostHog analytics into damtowise.xyz, a React + Vite portfolio site. PostHog (`posthog-js` + `@posthog/react`) was installed and initialized in `src/main.tsx` with a `PostHogProvider` wrapping the app. Environment variables were written to `.env.local`. Five custom events were instrumented across four components to capture the most business-critical visitor interactions: hero CTA clicks, contact modal opens, contact method clicks, project link clicks, and footer social clicks.
+The wizard has completed a deep integration of PostHog analytics into developer-portfolio.xyz, a React + Vite portfolio site. PostHog (`posthog-js` + `@posthog/react`) was installed and initialized in `src/main.tsx` with a `PostHogProvider` wrapping the app. Environment variables were written to `.env.local`. Five custom events were instrumented across four components to capture the most business-critical visitor interactions: hero CTA clicks, contact modal opens, contact method clicks, project link clicks, and footer social clicks.
 
 | Event                    | Description                                                                                                             | File                                  |
 | ------------------------ | ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
