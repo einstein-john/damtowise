@@ -1,6 +1,7 @@
 import React from 'react';
 import { usePostHog } from '@posthog/react';
-import { X, Mail, Instagram, Linkedin, MessageCircle, Github, Twitter, Phone } from 'lucide-react';
+import { X, Mail, MessageCircle, Phone } from 'lucide-react';
+import { Github, Linkedin, Instagram } from './BrandIcons';
 
 interface ContactModalProps {
   isOpen: boolean;

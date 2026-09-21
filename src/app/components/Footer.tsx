@@ -1,6 +1,7 @@
 import React from 'react';
 import { usePostHog } from '@posthog/react';
-import { Github, Linkedin, Mail, Twitter } from 'lucide-react';
+import { Mail } from 'lucide-react';
+import { Github, Linkedin } from './BrandIcons';
 
 export function Footer() {
   const posthog = usePostHog();

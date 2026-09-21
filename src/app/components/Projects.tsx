@@ -1,7 +1,7 @@
 import React from 'react';
 import { usePostHog } from '@posthog/react';
-import { DataFlowIcon, BranchFlowIcon, ApiFlowIcon } from '@/app/components/LogicFlowIcons';
-import { Github } from 'lucide-react';
+import { DataFlowIcon, BranchFlowIcon, ApiFlowIcon } from './LogicFlowIcons';
+import { Github } from './BrandIcons';
 
 interface ProjectCardProps {
   title: string;
@@ -99,23 +99,33 @@ function ProjectCard({ title, description, icon, tags, link, githubLink }: Proje
   );
 }
 
+function ProjectGrid({ projects }: { projects: ProjectEntry[] }) {
+  return (
+    <div className="grid md:grid-cols-2 gap-6">
+      {projects.map((project) => (
+        <ProjectCard
+          key={project.title}
+          title={project.title}
+          description={project.description}
+          icon={project.icon}
+          tags={project.tags}
+          link={project.link}
+          githubLink={project.githubLink}
+        />
+      ))}
+    </div>
+  );
+}
+
 export function Projects() {
-  const projects: ProjectEntry[] = [
+  const backendProjects: ProjectEntry[] = [
     {
       title: 'API Scanner',
       description:
         'Tooling to probe and catalog REST and OpenAPI endpoints—discovery, sanity checks, and quick visibility into surface area for backends you own or integrate with.',
       icon: <ApiFlowIcon className="w-full h-full" />,
       tags: ['REST', 'OpenAPI', 'Automation', 'Backend tooling'],
-      link: 'https://scan.damtowise.xyz',
-    },
-    {
-      title: "Mustafa's website",
-      description:
-        'Marketing and portfolio presence for Mustafa—layout, typography, responsive structure, and performant delivery for client-facing content.',
-      icon: <BranchFlowIcon className="w-full h-full" />,
-      tags: ['Web', 'UI', 'Responsive', 'Client project'],
-      link: 'https://mustafa-tech.com',
+      githubLink: 'https://github.com/einstein-john/api-scanner',
     },
     {
       title: 'Compressor service',
@@ -123,7 +133,26 @@ export function Projects() {
         'Compress PDFs and videos, and convert images to WebP—lighter files and faster loads without juggling separate tools.',
       icon: <DataFlowIcon className="w-full h-full" />,
       tags: ['PDF', 'Video', 'WebP', 'Compression'],
-      link: 'https://comp.damtowise.xyz',
+      githubLink: 'https://github.com/einstein-john/Compression_service',
+    },
+    {
+      title: 'Fitlocka backend',
+      description:
+        'Server-side API and data layer for Fitlocka—auth, business logic, and integrations that power the fitness product experience.',
+      icon: <ApiFlowIcon className="w-full h-full" />,
+      tags: ['API', 'Backend', 'Fitness', 'Services'],
+      githubLink: 'https://github.com/einstein-john/fitloka-backend',
+    },
+  ];
+
+  const frontendProjects: ProjectEntry[] = [
+    {
+      title: "Mustafa's website",
+      description:
+        'Marketing and portfolio presence for Mustafa—layout, typography, responsive structure, and performant delivery for client-facing content.',
+      icon: <BranchFlowIcon className="w-full h-full" />,
+      tags: ['Web', 'UI', 'Responsive', 'Client project'],
+      link: 'https://mustafa-tech.com',
     },
   ];
 
@@ -137,22 +166,24 @@ export function Projects() {
             Featured <span className="text-[#ff6600]">Projects</span>
           </h2>
           <p className="text-[#999] text-lg max-w-2xl mx-auto">
-            Automation and backend work, plus selected tools and client sites I've shipped
+            Backend services and tooling, plus selected frontend and client work
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-6">
-          {projects.map((project) => (
-            <ProjectCard
-              key={project.title}
-              title={project.title}
-              description={project.description}
-              icon={project.icon}
-              tags={project.tags}
-              link={project.link}
-              githubLink={project.githubLink}
-            />
-          ))}
+        <div className="space-y-14">
+          <div className="space-y-8">
+            <h3 className="text-2xl lg:text-3xl text-center">
+              <span className="text-[#ff6600]">Backend</span>
+            </h3>
+            <ProjectGrid projects={backendProjects} />
+          </div>
+
+          <div className="space-y-8">
+            <h3 className="text-2xl lg:text-3xl text-center">
+              <span className="text-[#ff6600]">Frontend</span>
+            </h3>
+            <ProjectGrid projects={frontendProjects} />
+          </div>
         </div>
       </div>
     </section>
