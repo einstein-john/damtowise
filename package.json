@@ -5,7 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && vite build --ssr src/entry-server.tsx --outDir .prerender && node scripts/prerender.mjs",
+    "build:client": "vite build",
+    "typecheck": "tsc --noEmit",
+    "assets": "npm run og && npm run favicons",
+    "og": "node scripts/generate-og.mjs",
+    "favicons": "node scripts/generate-favicons.mjs",
     "format": "prettier . --write",
     "format:check": "prettier . --check",
     "prepare": "husky"
@@ -21,9 +26,12 @@
   },
   "devDependencies": {
     "@tailwindcss/vite": "4.3.3",
+    "@types/node": "^26.6.4",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
+    "@types/three": "^0.186.0",
     "@vitejs/plugin-react": "6.1.1",
+    "canvas": "^3.2.3",
     "husky": "^9.1.7",
     "prettier": "^3.9.8",
     "tailwindcss": "4.3.3",
