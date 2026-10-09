@@ -68,7 +68,7 @@ export function About() {
             them are client work, so I've kept the public detail to what I'm cleared to share. I
             write up the engineering decisions and the things that broke along the way on{' '}
             <a
-              href="/fyi"
+              href="/fyi/"
               className="text-[#ff6600] hover:text-[#ff8833] underline underline-offset-4"
             >
               FYI

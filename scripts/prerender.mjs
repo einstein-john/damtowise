@@ -8,14 +8,15 @@
  *   node scripts/prerender.mjs
  *
  * Responsibilities:
- *   1. Inject the prerendered React markup into dist/index.html so `curl` and
- *      `view-source:` return the hero copy, headings, links and JSON-LD without
- *      running a single line of JavaScript.
+ *   1. Emit one HTML document per route into dist/, with the route's own title,
+ *      description, canonical, Open Graph tags and JSON-LD, plus the React
+ *      markup prerendered into #root. `curl` and `view-source:` therefore return
+ *      real content without running any JavaScript.
  *   2. Regenerate robots.txt, sitemap.xml and rss.xml from the same data
  *      modules the UI renders, so they can never drift from the site.
  *   3. Refresh the sitemap's <lastmod> values.
  */
-import { readFile, writeFile, rm } from 'node:fs/promises';
+import { readFile, writeFile, mkdir, rm } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -34,25 +35,21 @@ async function loadRenderer() {
     );
   }
   const mod = await import(pathToFileURL(entry).href);
-  if (typeof mod.render !== 'function') {
-    throw new Error(`SSR bundle at ${entry} does not export a render() function.`);
+  for (const name of ['render', 'headFor', 'robotsTxt', 'rssFeed', 'sitemapXml']) {
+    if (typeof mod[name] !== 'function') {
+      throw new Error(`SSR bundle at ${entry} does not export ${name}().`);
+    }
   }
   return mod;
 }
 
-/**
- * Replaces the hand-written JSON-LD block in index.html with the graph produced
- * by src/entry-server.tsx, so the structured data and the rendered markup are
- * generated from one place.
- */
-function syncJsonLd(html, jsonLd) {
-  const pattern = /<script type="application\/ld\+json">[\s\S]*?<\/script>/;
+/** Swaps the template's <head> for the route-specific one. */
+function replaceHead(html, head) {
+  const pattern = /<head>[\s\S]*?<\/head>/;
   if (!pattern.test(html)) {
-    throw new Error('Could not find the <script type="application/ld+json"> block to replace.');
+    throw new Error('Could not find a <head> block in the built index.html.');
   }
-  // `</script>` inside the JSON would terminate the tag early.
-  const safe = jsonLd.replace(/<\/script>/gi, '<\\/script>');
-  return html.replace(pattern, `<script type="application/ld+json">\n${safe}\n    </script>`);
+  return html.replace(pattern, `<head>\n${head}\n  </head>`);
 }
 
 function injectMarkup(html, appHtml) {
@@ -72,15 +69,26 @@ const textContentOf = (markup) =>
 
 async function main() {
   const renderer = await loadRenderer();
-  const { render, jsonLd, robotsTxt, rssFeed, sitemapXml } = renderer;
+  const { render, headFor, robotsTxt, rssFeed, sitemapXml, PRERENDER_ROUTES } = renderer;
 
-  const { html: appHtml } = render();
+  // The client build already wrote a full index.html; use it as the shell so
+  // every route shares the same body, script tags and asset references.
+  const shell = await readFile(distIndex, 'utf8');
 
-  const template = await readFile(distIndex, 'utf8');
-  const prerendered = injectMarkup(template, appHtml);
-  const withSchema = syncJsonLd(prerendered, jsonLd());
+  for (const route of PRERENDER_ROUTES) {
+    const { html: appHtml } = render(route.path);
+    const document_ = injectMarkup(replaceHead(shell, headFor(route)), appHtml);
 
-  await writeFile(distIndex, withSchema, 'utf8');
+    const target = path.join(distDir, route.file);
+    await mkdir(path.dirname(target), { recursive: true });
+    await writeFile(target, document_, 'utf8');
+
+    const indexable = route.noindex ? 'noindex' : 'index';
+    console.log(
+      `  ${route.path.padEnd(8)} -> ${route.file.padEnd(16)} ${indexable}, ` +
+        `~${textContentOf(appHtml).length.toLocaleString()} chars of text`,
+    );
+  }
 
   await Promise.all([
     writeFile(path.join(distDir, 'robots.txt'), robotsTxt(), 'utf8'),
@@ -88,14 +96,7 @@ async function main() {
     writeFile(path.join(distDir, 'rss.xml'), rssFeed(), 'utf8'),
   ]);
 
-  const textLength = textContentOf(appHtml).length;
-  console.log(
-    `prerendered ${appHtml.length.toLocaleString()} bytes of markup into dist/index.html`,
-  );
-  console.log(
-    `~${textLength.toLocaleString()} characters of indexable text, no JavaScript required`,
-  );
-  console.log('wrote robots.txt, sitemap.xml and rss.xml');
+  console.log('  wrote robots.txt, sitemap.xml and rss.xml');
 
   await rm(ssrDir, { recursive: true, force: true });
 }

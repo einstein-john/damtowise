@@ -15,7 +15,7 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { label: 'Stack', href: '/#stack' },
   { label: 'Projects', href: '/#projects' },
-  { label: 'FYI', href: '/fyi' },
+  { label: 'FYI', href: '/fyi/' },
 ];
 
 export function SiteHeader() {

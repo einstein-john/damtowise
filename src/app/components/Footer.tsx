@@ -59,7 +59,7 @@ export function Footer() {
               </li>
               <li>
                 <a
-                  href="/fyi"
+                  href="/fyi/"
                   className="text-[#999] hover:text-[#ff6600] transition-colors duration-300"
                 >
                   FYI
