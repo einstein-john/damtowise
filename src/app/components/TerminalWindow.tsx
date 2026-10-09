@@ -9,7 +9,7 @@ export function TerminalWindow() {
 }
 
 const engineer: AutomationEngineer = {
-  name: "Your Name",
+  name: "Damtowise",
   role: "Backend & Automation Engineer",
   stack: ["TypeScript", "Node.js", "n8n"],
   passions: ["Logic Flows", "API Design", "Automation"]
