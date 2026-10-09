@@ -1,9 +1,11 @@
-# Trailing-slash normalisation.
+# Trailing-slash normalisation for Cloudflare Pages / Netlify.
 #
-# Canonicals for non-root routes end in a slash (`/fyi/`) because that is what
-# static hosts serve from `fyi/index.html`. Redirecting the slashless form here
-# means a visitor (or crawler) never sees a redirect chain, and the URL they
-# land on is exactly the one declared as canonical.
+# Vercel reads vercel.json (`trailingSlash: true`) instead — keep the two files
+# in agreement.
+#
+# Canonicals for non-root routes carry a trailing slash (`/fyi/`), because that
+# is the path `fyi/index.html` is served under. Redirecting the slashless form
+# here means the URL a visitor lands on is exactly the declared canonical.
 /fyi  /fyi/  301
 
 # Never shadow a real file with the SPA shell.

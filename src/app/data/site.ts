@@ -16,7 +16,7 @@ export const SITE = {
   paths: {
     home: '/',
     projects: '/projects',
-    fyi: '/fyi',
+    fyi: '/fyi/',
   },
 } as const;
 

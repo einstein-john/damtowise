@@ -1,8 +1,10 @@
 import { SITE, PERSON, absoluteUrl, personSchema, webSiteSchema } from './site';
 
 export interface RouteMeta {
-  /** Canonical path. Non-root paths use a trailing slash so the canonical
-   *  matches whatever the static host actually serves without a redirect. */
+  /** Canonical path. Non-root paths carry a trailing slash, which is the form
+   *  `dist/fyi/index.html` is verified to be served under. Combined with
+   *  Vercel's `trailingSlash: true`, the canonical URL is served directly and
+   *  the slashless variant gets a single 308 onto it. */
   path: string;
   /** Output file, relative to dist/. */
   file: string;
@@ -55,12 +57,18 @@ export const ROUTES: RouteMeta[] = [
 ];
 
 export function routeForPath(pathname: string): RouteMeta | undefined {
-  const normalise = (value: string) => {
-    const withSlash = value.endsWith('/') ? value : `${value}/`;
-    return withSlash.replace(/\/{2,}/g, '/');
-  };
-  const target = normalise(pathname || HOME_PATH);
+  const target = normalisePath(pathname);
   return ROUTES.find((route) => route.path === target);
+}
+
+/**
+ * Collapses duplicate slashes and guarantees exactly one trailing slash on
+ * non-root paths, so `/fyi` and `/fyi/` resolve to the same route. The client
+ * router needs this because `history.pushState` does not normalise.
+ */
+function normalisePath(pathname: string): string {
+  const path = (pathname || HOME_PATH).replace(/\/{2,}/g, '/');
+  return path === HOME_PATH ? HOME_PATH : `${path.replace(/\/+$/, '')}/`;
 }
 
 export function canonicalFor(route: RouteMeta): string {

@@ -1,5 +1,8 @@
 # Cloudflare Pages / Netlify style header rules.
-# Applied verbatim by hosts that support a `_headers` file at the site root.
+#
+# NOTE: Vercel does not read this file — it uses vercel.json at the repo root.
+# This copy is kept in sync with it so the headers come out identical on
+# either platform.
 
 /*
   X-Content-Type-Options: nosniff
