@@ -6,10 +6,22 @@ import { PostHogProvider } from '@posthog/react';
 import App from '@/app/App';
 import '@/styles/index.css';
 
-posthog.init(import.meta.env.VITE_PUBLIC_POSTHOG_TOKEN, {
-  api_host: import.meta.env.VITE_PUBLIC_POSTHOG_HOST,
-  defaults: '2026-01-30',
-});
+/**
+ * Defer PostHog until after first paint so its polyfills and recorder bundle
+ * never block LCP or contribute to total blocking time.
+ */
+function initPostHog() {
+  posthog.init(import.meta.env.VITE_PUBLIC_POSTHOG_TOKEN, {
+    api_host: import.meta.env.VITE_PUBLIC_POSTHOG_HOST,
+    defaults: '2026-01-30',
+  });
+}
+
+if (document.readyState === 'complete') {
+  initPostHog();
+} else {
+  window.addEventListener('load', initPostHog, { once: true });
+}
 
 const container = document.getElementById('root');
 if (!container) {
