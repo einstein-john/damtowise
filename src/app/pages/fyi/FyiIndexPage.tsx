@@ -3,7 +3,7 @@ import { ArrowLeft, ArrowRight, CalendarDays, Clock, Mail, Terminal } from 'luci
 import { Breadcrumbs } from '@/app/components/Breadcrumbs';
 import { ROUTES } from '@/app/data/routes';
 import { jsonLdFor } from '@/app/data/json-ld';
-import { ADMIN_HOTKEY_LABEL } from '@/app/lib/fyi/config';
+
 import { formatReadTime, formatShortDate } from '@/app/lib/fyi/format';
 import { upsertJsonLd } from '@/app/lib/head-tags';
 import { useFyiCatalog } from '@/app/lib/fyi/store';
@@ -517,11 +517,6 @@ export function FyiPage() {
 
       {/* Deliberately plain: the admin entry point is a chord, not a link. */}
       <p className="mx-auto mt-space-xl max-w-[1100px] px-6 text-center font-label text-label-sm text-fyi-ink-faint">
-        Press{' '}
-        <kbd className="rounded border border-fyi-stroke bg-fyi-well px-1.5 py-0.5 font-code text-label-sm text-fyi-ink-dim">
-          {ADMIN_HOTKEY_LABEL}
-        </kbd>{' '}
-        anywhere on this site to open the writing console.{' '}
         <a
           href="/"
           className="inline-flex items-center gap-1 text-fyi-flame hover:text-fyi-flame-soft"

@@ -38,9 +38,7 @@ const SESSION_FETCH: RequestInit = { credentials: 'include', mode: 'cors' };
 
 function assertConfigured() {
   if (!NEON_AUTH_CONFIGURED) {
-    throw new NeonAuthError(
-      'Auth is not configured. Set VITE_NEON_AUTH_URL to your Neon Auth URL.',
-    );
+    throw new NeonAuthError('Auth host not configured.');
   }
 }
 

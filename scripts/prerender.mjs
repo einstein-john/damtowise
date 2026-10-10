@@ -221,7 +221,7 @@ async function main() {
     await mkdir(path.dirname(target), { recursive: true });
     await writeFile(target, document_, 'utf8');
 
-    const indexable = route.noindex ? 'noindex' : 'index';
+    const indexable = meta.noindex ? 'noindex' : 'index';
     console.log(
       `  ${route.path.padEnd(8)} -> ${route.file.padEnd(16)} ${indexable}, ` +
         `~${textContentOf(appHtml).length.toLocaleString()} chars of text, ` +

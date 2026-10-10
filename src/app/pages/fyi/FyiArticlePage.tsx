@@ -167,6 +167,8 @@ export function FyiArticlePage({ path }: { path: string }) {
             <div className="flex items-center gap-space-md text-fyi-ink-faint">
               <span className="flex items-center gap-1">
                 <CalendarDays className="h-4 w-4 text-fyi-flame" aria-hidden="true" />
+                {/* React's type wants `dateTime`; browsers parse attribute names
+                    case-insensitively, so this is the standard idiom. */}
                 <time dateTime={post.publishedAt ?? post.updatedAt}>
                   {formatDate(post.publishedAt ?? post.updatedAt)}
                 </time>

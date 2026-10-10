@@ -22,7 +22,7 @@ import {
  * Neon Auth; the session cookie stays on Neon's domain, and the API is talked
  * to with the bearer token that comes back.
  *
- * If `VITE_NEON_AUTH_URL` was not set at build time the form says so plainly
+ * If the auth host was not set at build time the form says so plainly
  * rather than failing with a network error nobody can interpret.
  */
 export function AdminSignIn({ error }: { error: string | null }) {
@@ -58,8 +58,8 @@ export function AdminSignIn({ error }: { error: string | null }) {
 
           {!NEON_AUTH_CONFIGURED && (
             <Notice tone="error" title="Auth host not configured">
-              Set <code className="font-code text-code-md">VITE_NEON_AUTH_URL</code> before
-              building, then rebuild. Until then the console cannot verify a session.
+              The auth host is not configured for this deployment. The console cannot verify a
+              session until it is set.
             </Notice>
           )}
 

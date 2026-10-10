@@ -135,7 +135,7 @@ export function AdminPostEditor({ postId, isNew }: { postId: string | null; isNe
           canonicalUrl: loaded?.canonicalUrl ?? '',
           noindex: loaded?.noindex ?? false,
           tagIds: loaded?.tags.map((tag) => tag.id) ?? [],
-          coverMediaId: null,
+          coverMediaId: undefined,
         });
 
         setLoadState('ready');
@@ -234,6 +234,8 @@ export function AdminPostEditor({ postId, isNew }: { postId: string | null; isNe
       setDirty(false);
       setSavedAt(new Date().toISOString());
       await inspect();
+      // After creating a new post, navigate to its editor URL.
+      if (!post) navigate(`/admin/editor/${saved.id}`);
       return saved;
     } catch (cause) {
       const message =
@@ -251,7 +253,8 @@ export function AdminPostEditor({ postId, isNew }: { postId: string | null; isNe
 
   const publish = async () => {
     // A draft cannot be published before it exists, so a first publish saves.
-    const target = post ?? (await save());
+    // Also save when the existing post has unsaved changes.
+    const target = (post && dirty) || !post ? await save() : post;
     if (!target) return;
 
     setSaving(true);

@@ -43,7 +43,10 @@ export { ARTICLE_BOOTSTRAP_ID, CATALOG_BOOTSTRAP_ID };
 let articles: FyiPostDetail[] = [];
 
 /** The FYI API base the build should read from. Overridable for a local run. */
-const FYI_API_URL = (process.env.FYI_API_URL ?? 'https://api.damtowise.xyz').replace(/\/+$/, '');
+const FYI_API_URL = (import.meta.env.VITE_FYI_API_URL ?? 'https://api.damtowise.xyz').replace(
+  /\/+$/,
+  '',
+);
 
 const ARTICLE_PAGE_LIMIT = 50;
 const MAX_PAGES = 20;
@@ -81,6 +84,7 @@ export async function loadFyiArticles(fetchImpl: typeof fetch = fetch): Promise<
       const payload = await get<{ items: FyiPostDetail[]; total: number }>(
         `${'/posts'}?page=${page}&pageSize=${ARTICLE_PAGE_LIMIT}`,
       );
+      if (payload.items.length === 0) break;
       posts.push(...payload.items);
       total = payload.total;
       page += 1;
@@ -228,12 +232,14 @@ export function staticRouteMetaFor(path: string): RouteMeta {
 export function sitemapEntries() {
   const today = new Date().toISOString().slice(0, 10);
 
-  const staticEntries = ROUTES.filter((route) => !route.noindex).map((route) => ({
-    loc: absoluteUrl(route.path),
-    lastmod: today,
-    changefreq: route.path === '/' ? 'monthly' : 'weekly',
-    priority: route.path === '/' ? '1.0' : '0.8',
-  }));
+  const staticEntries = ROUTES.map((route) => staticRouteMetaFor(route.path))
+    .filter((meta) => !meta.noindex)
+    .map((meta) => ({
+      loc: absoluteUrl(meta.path),
+      lastmod: today,
+      changefreq: meta.path === '/' ? 'monthly' : 'weekly',
+      priority: meta.path === '/' ? '1.0' : '0.8',
+    }));
 
   const articleEntries = articles
     .filter((post) => !post.noindex)
@@ -289,7 +295,7 @@ export function rssFeed() {
 
   return [
     '<?xml version="1.0" encoding="UTF-8"?>',
-    '<rss version="2.0" xmlns:atom="http://www.w3.org/2000/atom">',
+    '<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">',
     '  <channel>',
     `    <title>FYI · ${SITE.name}</title>`,
     `    <link>${SITE.origin}/fyi/</link>`,
@@ -320,7 +326,7 @@ export function sitemapXml() {
 
   return [
     '<?xml version="1.0" encoding="UTF-8"?>',
-    '<urlset xmlns="http://www.sitemaps.org/schemas/0.9">',
+    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
     urls,
     '</urlset>',
     '',

@@ -49,22 +49,25 @@ export function AdminWorklog() {
   const [media, setMedia] = React.useState<FyiMediaItem[]>([]);
   const [mediaId, setMediaId] = React.useState<string>('none');
 
-  const load = React.useCallback(async () => {
-    setState('loading');
-    try {
-      const [list, mediaPage] = await withToken(async (token) => [
-        await listAdminWorklog(token),
-        await listMedia(token, { page: 1, pageSize: 40 }).catch(() => null),
-      ]);
-      setItems(list);
-      setMedia(mediaPage?.items ?? []);
-      setState('ready');
-      setError(null);
-    } catch (cause) {
-      setState('error');
-      setError(cause instanceof Error ? cause.message : 'Could not load the work log.');
-    }
-  }, [withToken]);
+  const load = React.useCallback(
+    async (opts?: { preserveError?: boolean }) => {
+      setState('loading');
+      try {
+        const [list, mediaPage] = await withToken(async (token) => [
+          await listAdminWorklog(token),
+          await listMedia(token, { page: 1, pageSize: 40 }).catch(() => null),
+        ]);
+        setItems(list);
+        setMedia(mediaPage?.items ?? []);
+        setState('ready');
+        if (!opts?.preserveError) setError(null);
+      } catch (cause) {
+        setState('error');
+        setError(cause instanceof Error ? cause.message : 'Could not load the work log.');
+      }
+    },
+    [withToken],
+  );
 
   React.useEffect(() => {
     void load();
@@ -89,7 +92,7 @@ export function AdminWorklog() {
       );
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Reorder failed.');
-      await load();
+      await load({ preserveError: true });
     } finally {
       setReordering(false);
     }

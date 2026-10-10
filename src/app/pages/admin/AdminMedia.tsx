@@ -43,6 +43,7 @@ export function AdminMedia() {
   const [caption, setCaption] = React.useState('');
   const [decorative, setDecorative] = React.useState(false);
   const [uploading, setUploading] = React.useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const load = React.useCallback(async () => {
     setState('loading');
@@ -79,6 +80,7 @@ export function AdminMedia() {
       setAlt('');
       setCaption('');
       setDecorative(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
       await load();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Upload failed.');
@@ -150,6 +152,7 @@ export function AdminMedia() {
         <div className="lg:col-span-4">
           <FyiField label="File" htmlFor="media-file">
             <input
+              ref={fileInputRef}
               id="media-file"
               type="file"
               accept={ACCEPT}
@@ -228,8 +231,9 @@ export function AdminMedia() {
 
               <FyiField label="Alt text" htmlFor={`alt-${item.id}`}>
                 <FyiInput
+                  key={`alt-${item.id}`}
                   id={`alt-${item.id}`}
-                  value={item.alt ?? ''}
+                  defaultValue={item.alt ?? ''}
                   onBlur={(event) => {
                     if (event.target.value !== (item.alt ?? ''))
                       void patch(item, { alt: event.target.value });
@@ -241,8 +245,9 @@ export function AdminMedia() {
 
               <FyiField label="Caption" htmlFor={`caption-${item.id}`}>
                 <FyiInput
+                  key={`caption-${item.id}`}
                   id={`caption-${item.id}`}
-                  value={item.caption ?? ''}
+                  defaultValue={item.caption ?? ''}
                   onBlur={(event) => {
                     if (event.target.value !== (item.caption ?? ''))
                       void patch(item, { caption: event.target.value });

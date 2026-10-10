@@ -70,7 +70,8 @@ export function FyiCatalogProvider({ children }: { children: React.ReactNode }) 
     let cancelled = false;
 
     // Already populated by the prerender step, so a cold load has nothing to download.
-    if (initialCatalog()) {
+    // Skip this only on the first run — a manual reload (nonce > 0) must fetch.
+    if (initialCatalog() && nonce === 0) {
       setValue((current) => ({ ...current, state: 'ready', error: null }));
       return;
     }

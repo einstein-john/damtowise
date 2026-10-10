@@ -46,6 +46,34 @@ Article bodies are the HTML the API's publish pipeline already sanitised
 
 ---
 
+## SEO
+
+|                         | FYI index                                                                                           | Article                                                                                                           |
+| ----------------------- | --------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `<title>` / description | from `data/routes.ts`                                                                               | post's `seoTitle` / `seoDescription`, falling back to the excerpt                                                 |
+| canonical               | `/fyi/`                                                                                             | `/fyi/<slug>/`                                                                                                    |
+| `robots`                | `index` once the build resolves ≥ 1 post, otherwise `noindex`                                       | the post's own `noindex` flag                                                                                     |
+| Open Graph              | `website` + post-aware card                                                                         | `article` + `article:published_time`, `article:modified_time`, `article:author`, `article:tag`, `article:section` |
+| JSON-LD                 | `WebSite` + `Person` + `BreadcrumbList` + `Blog` with a `blogPost` ItemList of every published post | `BlogPosting` + `BreadcrumbList`                                                                                  |
+| Sitemap                 | `/fyi/`                                                                                             | one entry per post, `lastmod` from `publishedAt`                                                                  |
+| RSS                     | channel                                                                                             | one `<item>` per post                                                                                             |
+
+Why the `Blog`/`ItemList` matters: the index only _renders_ the recent posts, but
+the client pages through `GET /posts` until the payload is exhausted, so the
+graph describes every published article. Without it, anything past page one would
+be an orphan with no inbound internal link.
+
+`robots.txt` disallows `/admin/`; the console is never in the sitemap and is
+served with `X-Robots-Tag: noindex, nofollow` by both `vercel.json` and
+`public/_headers`.
+
+Nothing here is hand-maintained — every value comes from the API through
+`src/entry-server.tsx` at build time, and the same functions
+(`src/app/data/json-ld.ts`, `src/app/lib/head-tags.ts`) update the live document
+after a client-side navigation.
+
+---
+
 ## Writing console
 
 Reached with the chord **⌘/Ctrl + ⇧ + F** from any page, or by direct URL.

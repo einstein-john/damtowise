@@ -88,23 +88,28 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const adopt = React.useCallback(async (token: string): Promise<boolean> => {
-    try {
-      const me = await getAdminIdentity(token);
-      tokenRef.current = token;
-      writeStoredToken(token);
-      setIdentity(me);
-      setStatus('signed-in');
-      setError(null);
-      return true;
-    } catch {
-      tokenRef.current = null;
-      writeStoredToken(null);
-      setIdentity(null);
-      setStatus('signed-out');
-      return false;
-    }
-  }, []);
+  const adopt = React.useCallback(
+    async (token: string, cancelled?: () => boolean): Promise<boolean> => {
+      try {
+        const me = await getAdminIdentity(token);
+        if (cancelled?.()) return false;
+        tokenRef.current = token;
+        writeStoredToken(token);
+        setIdentity(me);
+        setStatus('signed-in');
+        setError(null);
+        return true;
+      } catch {
+        if (cancelled?.()) return false;
+        tokenRef.current = null;
+        writeStoredToken(null);
+        setIdentity(null);
+        setStatus('signed-out');
+        return false;
+      }
+    },
+    [],
+  );
 
   const dropSession = React.useCallback(() => {
     tokenRef.current = null;
@@ -122,6 +127,7 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
    */
   React.useEffect(() => {
     let cancelled = false;
+    const isCancelled = () => cancelled;
 
     (async () => {
       const stored = readStoredToken();
@@ -141,11 +147,13 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
           }
           // Expired or revoked: try the session cookie once before giving up.
           const fresh = await refresh();
-          if (fresh && (await adopt(fresh))) return;
+          if (cancelled) return;
+          if (fresh && (await adopt(fresh, isCancelled))) return;
         }
       } else {
         const fresh = await refresh();
-        if (fresh && (await adopt(fresh))) return;
+        if (cancelled) return;
+        if (fresh && (await adopt(fresh, isCancelled))) return;
       }
 
       if (cancelled) return;
@@ -213,7 +221,12 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
           dropSession();
           throw cause;
         }
-        return call(fresh);
+        try {
+          return await call(fresh);
+        } catch (retryCause) {
+          if (isUnauthorized(retryCause)) dropSession();
+          throw retryCause;
+        }
       }
     },
     [dropSession, refresh],
