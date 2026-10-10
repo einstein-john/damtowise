@@ -1,4 +1,5 @@
 import { NEON_AUTH_URL, NEON_AUTH_CONFIGURED } from '@/app/lib/fyi/config';
+import { ADMIN_PATH } from '@/app/data/routes';
 
 /**
  * Neon Auth (managed Better Auth) session → bearer token.
@@ -7,16 +8,19 @@ import { NEON_AUTH_URL, NEON_AUTH_CONFIGURED } from '@/app/lib/fyi/config';
  * FYI API cannot see. Its JWT plugin therefore exposes the same identity as a
  * short-lived bearer token, and that is what `GET /admin/*` wants. The flow:
  *
- *   1. `POST /sign-in/email`      → sets the session cookie, returns a JWT
- *   2. `GET  /token`              → re-reads the JWT whenever it expires (15 min)
- *   3. `POST /sign-out`           → drops the session
+ *   1. `POST /sign-in/magic-link` → Neon emails a one-time link
+ *   2. link click → Neon verifies the token, plants the session cookie on its
+ *      own domain and redirects back to the site
+ *   3. `GET  /token`              → re-reads the JWT (on that return trip, on
+ *                                   reload, and on every 401)
+ *   4. `POST /sign-out`           → drops the session
  *
  * Both the `set-auth-jwt` response header and a `token` field in the JSON body
  * are accepted, because Neon documents the header and the SDK returns the body
  * shape — either can appear depending on which client made the request.
  */
 
-/** Thrown for a bad password, an unconfirmed email or an unreachable host. */
+/** Thrown for an unknown address, a throttled host or an unreachable one. */
 export class NeonAuthError extends Error {
   readonly status: number;
 
@@ -79,37 +83,41 @@ function messageFrom(body: unknown, fallback: string): string {
   return fallback;
 }
 
-/** Signs in with email and password, returning a fresh access token. */
-export async function signInWithPassword(email: string, password: string): Promise<string> {
+/**
+ * Emails a one-time sign-in link to the given address.
+ *
+ * No password is ever collected, and this returns nothing: the link points at
+ * Neon, which verifies the token in it, plants the session cookie on its own
+ * domain and redirects back to `ADMIN_PATH`. The console only picks that
+ * session up on the return trip, through `requestAccessToken` — which is also
+ * why the callback is built from `location.origin` rather than a build-time
+ * constant, so a preview deployment never mails links to production.
+ */
+export async function requestMagicLink(email: string): Promise<void> {
   assertConfigured();
 
   let response: Response;
   try {
-    response = await fetch(authUrl('/sign-in/email'), {
+    response = await fetch(authUrl('/sign-in/magic-link'), {
       ...SESSION_FETCH,
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify({ email, password, rememberMe: true }),
+      body: JSON.stringify({ email, callbackURL: magicLinkCallbackUrl() }),
     });
   } catch {
     throw new NeonAuthError('Could not reach the auth host. Check your connection.');
   }
 
-  const body = await readJson(response);
   if (!response.ok) {
     throw new NeonAuthError(
-      messageFrom(body, 'Sign-in failed. Check the email and password.'),
+      messageFrom(await readJson(response), 'Could not send the link. Check the email address.'),
       response.status,
     );
   }
+}
 
-  const token = readToken(response, body);
-  if (!token) {
-    throw new NeonAuthError(
-      'Signed in, but the auth host returned no access token. Enable the Neon JWT plugin.',
-    );
-  }
-  return token;
+function magicLinkCallbackUrl(): string {
+  return `${window.location.origin}${ADMIN_PATH}`;
 }
 
 /**

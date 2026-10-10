@@ -3,7 +3,7 @@ import { FyiApiError, getAdminIdentity } from '@/app/lib/fyi/api';
 import {
   NeonAuthError,
   requestAccessToken,
-  signInWithPassword,
+  requestMagicLink,
   signOutOfNeonAuth,
 } from './neon-auth';
 import { TOKEN_REFRESH_INTERVAL_MS } from '@/app/lib/fyi/config';
@@ -33,7 +33,11 @@ export interface AdminAuthValue {
   error: string | null;
   /** True once the first session check has resolved. */
   ready: boolean;
-  signIn: (email: string, password: string) => Promise<void>;
+  /**
+   * Emails a one-time sign-in link. There is no password step: the link lands
+   * back on `/admin`, and the provider's session check picks the session up.
+   */
+  sendMagicLink: (email: string) => Promise<void>;
   signOut: () => Promise<void>;
   clearError: () => void;
   withToken: <T>(call: (token: string) => Promise<T>) => Promise<T>;
@@ -182,24 +186,18 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
     return () => window.clearInterval(timer);
   }, [status, refresh, dropSession]);
 
-  const signIn = React.useCallback(
-    async (email: string, password: string) => {
-      setError(null);
-      try {
-        const token = await signInWithPassword(email, password);
-        const ok = await adopt(token);
-        if (!ok) setError('Signed in, but this account is not on the admin allowlist.');
-      } catch (cause) {
-        setError(
-          cause instanceof NeonAuthError
-            ? cause.message
-            : 'Sign-in failed. Check the email and password.',
-        );
-        setStatus('signed-out');
-      }
-    },
-    [adopt],
-  );
+  const sendMagicLink = React.useCallback(async (email: string) => {
+    setError(null);
+    try {
+      await requestMagicLink(email);
+    } catch (cause) {
+      setError(
+        cause instanceof NeonAuthError
+          ? cause.message
+          : 'Could not send the link. Check the email address.',
+      );
+    }
+  }, []);
 
   const signOut = React.useCallback(async () => {
     await signOutOfNeonAuth();
@@ -238,13 +236,13 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
       identity,
       error,
       ready,
-      signIn,
+      sendMagicLink,
       signOut,
       clearError: () => setError(null),
       withToken,
       refresh,
     }),
-    [status, identity, error, ready, signIn, signOut, withToken, refresh],
+    [status, identity, error, ready, sendMagicLink, signOut, withToken, refresh],
   );
 
   return <AdminAuthContext.Provider value={value}>{children}</AdminAuthContext.Provider>;

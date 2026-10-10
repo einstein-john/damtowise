@@ -1,5 +1,5 @@
 import React from 'react';
-import { KeyRound, ShieldAlert } from 'lucide-react';
+import { Mail, ShieldAlert } from 'lucide-react';
 import { ADMIN_HOTKEY_LABEL, NEON_AUTH_CONFIGURED } from '@/app/lib/fyi/config';
 import { useAdminAuth } from '@/app/lib/admin/auth';
 import {
@@ -18,24 +18,27 @@ import {
  * Admin sign-in gate.
  *
  * Reached by the ⌘⇧F chord or by direct URL — never linked from anywhere in the
- * public site. It only ever collects an email and password and hands them to
- * Neon Auth; the session cookie stays on Neon's domain, and the API is talked
- * to with the bearer token that comes back.
+ * public site. It is magic-link only: the address is handed to Neon Auth, which
+ * emails a one-time link back to this console. No password is ever collected,
+ * the session cookie stays on Neon's domain, and the API is talked to with the
+ * bearer token that comes back once the link has been opened.
  *
  * If the auth host was not set at build time the form says so plainly
  * rather than failing with a network error nobody can interpret.
  */
 export function AdminSignIn({ error }: { error: string | null }) {
-  const { signIn, status, clearError } = useAdminAuth();
+  const { sendMagicLink, status, clearError } = useAdminAuth();
   const [email, setEmail] = React.useState('');
-  const [password, setPassword] = React.useState('');
   const [busy, setBusy] = React.useState(false);
+  const [sentTo, setSentTo] = React.useState<string | null>(null);
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     setBusy(true);
     try {
-      await signIn(email.trim(), password);
+      const address = email.trim();
+      await sendMagicLink(address);
+      setSentTo(address);
     } finally {
       setBusy(false);
     }
@@ -51,9 +54,9 @@ export function AdminSignIn({ error }: { error: string | null }) {
             Sign in to <span className="text-fyi-flame">the console</span>
           </h1>
           <p className="font-body text-body-md text-fyi-ink-dim">
-            Only accounts listed in{' '}
+            Magic link only — there is no password. Only accounts listed in{' '}
             <code className="font-code text-code-md text-fyi-flame">ADMIN_USER_IDS</code> can
-            publish. Everyone else gets a 403, even with a valid password.
+            publish; everyone else gets a 403, even with a valid link.
           </p>
 
           {!NEON_AUTH_CONFIGURED && (
@@ -76,38 +79,52 @@ export function AdminSignIn({ error }: { error: string | null }) {
             </Notice>
           )}
 
-          <FyiField label="Email" htmlFor="admin-email">
-            <FyiInput
-              id="admin-email"
-              type="email"
-              autoComplete="username"
-              required
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              placeholder="you@damtowise.xyz"
-            />
-          </FyiField>
+          {sentTo ? (
+            <>
+              <Notice tone="success" title="Check your inbox">
+                A one-time sign-in link is on its way to{' '}
+                <span className="font-code text-code-md">{sentTo}</span>. Open it in this browser —
+                the link only works once and expires after a few minutes.
+              </Notice>
 
-          <FyiField label="Password" htmlFor="admin-password">
-            <FyiInput
-              id="admin-password"
-              type="password"
-              autoComplete="current-password"
-              required
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              placeholder="••••••••••"
-            />
-          </FyiField>
+              <p className="font-body text-body-sm text-fyi-ink-dim">
+                Nothing on this screen changes until the link is opened: clicking it returns here
+                and the console picks the session up on arrival.
+              </p>
 
-          <FyiButton
-            type="submit"
-            variant="primary"
-            icon={KeyRound}
-            disabled={busy || !NEON_AUTH_CONFIGURED || status === 'loading'}
-          >
-            {busy ? 'Verifying…' : 'Sign in'}
-          </FyiButton>
+              <FyiButton
+                type="submit"
+                variant="secondary"
+                icon={Mail}
+                disabled={busy || !NEON_AUTH_CONFIGURED || status === 'loading'}
+              >
+                {busy ? 'Sending…' : 'Send another link'}
+              </FyiButton>
+            </>
+          ) : (
+            <>
+              <FyiField label="Email" htmlFor="admin-email">
+                <FyiInput
+                  id="admin-email"
+                  type="email"
+                  autoComplete="username"
+                  required
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  placeholder="you@damtowise.xyz"
+                />
+              </FyiField>
+
+              <FyiButton
+                type="submit"
+                variant="primary"
+                icon={Mail}
+                disabled={busy || !NEON_AUTH_CONFIGURED || status === 'loading'}
+              >
+                {busy ? 'Sending…' : 'Email me a sign-in link'}
+              </FyiButton>
+            </>
+          )}
 
           <p className="font-label text-label-sm text-fyi-ink-faint">
             Press {ADMIN_HOTKEY_LABEL} anywhere on the site to come back here.
