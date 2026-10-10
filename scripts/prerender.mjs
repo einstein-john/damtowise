@@ -8,13 +8,13 @@
  *   node scripts/prerender.mjs
  *
  * Responsibilities:
- *   1. Emit one HTML document per route into dist/, with the route's own title,
- *      description, canonical, Open Graph tags and JSON-LD, plus the React
- *      markup prerendered into #root. `curl` and `view-source:` therefore return
- *      real content without running any JavaScript.
- *   2. Regenerate robots.txt, sitemap.xml and rss.xml from the same data
+ *   1. Load the published FYI articles from the API, so one HTML document can be
+ *      emitted per post (`/fyi/<slug>/index.html`) with its own title,
+ *      description, canonical, Open Graph tags and JSON-LD.
+ *   2. Emit one HTML document per static route into dist/.
+ *   3. Regenerate robots.txt, sitemap.xml and rss.xml from the same data
  *      modules the UI renders, so they can never drift from the site.
- *   3. Refresh the sitemap's <lastmod> values.
+ *   4. Refresh the sitemap's <lastmod> values.
  */
 import { readFile, writeFile, mkdir, rm } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
@@ -129,6 +129,29 @@ function injectMarkup(html, appHtml) {
   return html.replace(rootPattern, `<div id="root">${appHtml}</div>`);
 }
 
+/**
+ * Injects the JSON payloads the client hydrates from.
+ *
+ * Without them, a cold load renders the prerendered markup but the first client
+ * pass finds an empty cache and swaps in a skeleton — a hydration mismatch that
+ * also makes the content flash. The blocks are `application/json` (never
+ * executed) and are written before `</body>`, so they cannot disturb the head
+ * assertions the build already made.
+ */
+function injectBootstrap(html, payloads) {
+  const marker = '</body>';
+  if (!html.includes(marker)) {
+    throw new Error('Could not locate </body> to inject the FYI bootstrap into.');
+  }
+
+  const tags = payloads
+    .filter((entry) => entry.value)
+    .map((entry) => `  <script type="application/json" id="${entry.id}">${entry.value}</script>`)
+    .join('\n');
+
+  return tags ? html.replace(marker, `${tags}\n  ${marker}`) : html;
+}
+
 const textContentOf = (markup) =>
   markup
     .replace(/<script[\s\S]*?<\/script>/g, ' ')
@@ -138,7 +161,32 @@ const textContentOf = (markup) =>
 
 async function main() {
   const renderer = await loadRenderer();
-  const { render, headFor, robotsTxt, rssFeed, sitemapXml, PRERENDER_ROUTES } = renderer;
+  const {
+    render,
+    headFor,
+    articleHeadFor,
+    robotsTxt,
+    rssFeed,
+    sitemapXml,
+    sitemapEntries,
+    PRERENDER_ROUTES,
+    loadFyiArticles,
+    prerenderArticleRoutes,
+    articleBootstrap,
+    catalogBootstrap,
+    loadedArticles,
+    ARTICLE_BOOTSTRAP_ID,
+    CATALOG_BOOTSTRAP_ID,
+  } = renderer;
+
+  // The FYI API owns which posts are public. A failure here is logged by the
+  // renderer and leaves the build with the static routes only.
+  if (typeof loadFyiArticles === 'function') await loadFyiArticles();
+  const articleRoutes =
+    typeof prerenderArticleRoutes === 'function' ? prerenderArticleRoutes() : [];
+  const bootstrap = typeof articleBootstrap === 'function' ? articleBootstrap : () => null;
+  const catalog = typeof catalogBootstrap === 'function' ? catalogBootstrap : () => null;
+  const articleCount = typeof loadedArticles === 'function' ? loadedArticles().length : 0;
 
   // The client build already wrote a full index.html; use it as the shell so
   // every route shares the same body, script tags and asset references.
@@ -155,7 +203,9 @@ async function main() {
   for (const route of PRERENDER_ROUTES) {
     const { html: appHtml } = render(route.path);
     const head = [headFor(route), ...assetTags].join('\n');
-    const document_ = injectMarkup(replaceHead(shell, head), appHtml);
+    const document_ = injectBootstrap(injectMarkup(replaceHead(shell, head), appHtml), [
+      { id: CATALOG_BOOTSTRAP_ID ?? 'fyi-catalog', value: catalog() },
+    ]);
 
     assertAssetsPresent(document_, route, assetTags);
 
@@ -171,13 +221,48 @@ async function main() {
     );
   }
 
+  if (articleCount === 0) {
+    console.log('  no FYI articles published yet — skipping /fyi/<slug>/ documents');
+  }
+
+  for (const route of articleRoutes) {
+    const { html: appHtml } = render(route.path);
+    const post = loadedArticles().find(
+      (entry) => entry.slug === route.path.slice('/fyi/'.length, -1),
+    );
+    const head = [post ? articleHeadFor(post) : headFor(route), ...assetTags].join('\n');
+
+    const document_ = injectBootstrap(injectMarkup(replaceHead(shell, head), appHtml), [
+      { id: CATALOG_BOOTSTRAP_ID ?? 'fyi-catalog', value: catalog() },
+      {
+        id: ARTICLE_BOOTSTRAP_ID ?? 'fyi-post',
+        value: typeof bootstrap === 'function' ? bootstrap(route.path) : null,
+      },
+    ]);
+
+    assertAssetsPresent(document_, route, assetTags);
+
+    const target = path.join(distDir, route.file);
+    await mkdir(path.dirname(target), { recursive: true });
+    await writeFile(target, document_, 'utf8');
+
+    console.log(
+      `  ${route.path.padEnd(28)} -> ${route.file.padEnd(34)} ` +
+        `${post?.noindex ? 'noindex' : 'index'}, ` +
+        `~${textContentOf(appHtml).length.toLocaleString()} chars of text`,
+    );
+  }
+
   await Promise.all([
     writeFile(path.join(distDir, 'robots.txt'), robotsTxt(), 'utf8'),
     writeFile(path.join(distDir, 'sitemap.xml'), sitemapXml(), 'utf8'),
     writeFile(path.join(distDir, 'rss.xml'), rssFeed(), 'utf8'),
   ]);
 
-  console.log('  wrote robots.txt, sitemap.xml and rss.xml');
+  console.log(
+    `  wrote robots.txt, sitemap.xml (${sitemapEntries().length} URLs) and rss.xml ` +
+      `(${articleCount} article${articleCount === 1 ? '' : 's'})`,
+  );
 
   await rm(ssrDir, { recursive: true, force: true });
 }

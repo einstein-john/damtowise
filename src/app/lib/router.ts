@@ -97,6 +97,8 @@ export function navigate(href: string) {
 export interface Route {
   meta: RouteMeta | undefined;
   isNotFound: boolean;
+  /** The path the router resolved, normalised. Needed by pages that read it. */
+  path: string;
 }
 
 /** Subscribes to URL changes and resolves the current route. */
@@ -113,7 +115,7 @@ export function useRoute(): Route {
   }, []);
 
   const meta = React.useMemo(() => routeForPath(path), [path]);
-  return { meta, isNotFound: !meta };
+  return { meta, isNotFound: !meta, path };
 }
 
 /** All prerenderable routes, for the build step. */
