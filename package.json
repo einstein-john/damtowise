@@ -18,7 +18,7 @@
   "dependencies": {
     "@posthog/react": "^1.11.1",
     "lucide-react": "1.47.0",
-    "posthog-js": "^1.434.4",
+    "posthog-js": "^1.438.7",
     "postprocessing": "^6.39.5",
     "react": "19.3.0",
     "react-dom": "19.3.0",
