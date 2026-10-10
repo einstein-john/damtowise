@@ -11,29 +11,10 @@ posthog.init(import.meta.env.VITE_PUBLIC_POSTHOG_TOKEN, {
   defaults: '2026-01-30',
 });
 
-/**
- * Resolve the mount point, creating it if the document doesn't have one.
- *
- * This used to be `getElementById('root')!`. A non-null assertion only
- * silences TypeScript — it does nothing at runtime, so any document served
- * without the mount point (stale cached HTML, a host serving a different
- * shell, a 404 document) threw `TypeError: Cannot read properties of null`
- * before React ever mounted, leaving a blank page with no error boundary in
- * sight. Recreating the node is two lines and turns a total failure into a
- * working page.
- */
-function resolveContainer(): HTMLElement {
-  const existing = document.getElementById('root');
-  if (existing) return existing;
-
-  const created = document.createElement('div');
-  created.id = 'root';
-  document.body.prepend(created);
-  console.warn('[app] #root was missing from the document; created a fresh mount point.');
-  return created;
+const container = document.getElementById('root');
+if (!container) {
+  throw new Error('[app] #root mount point not found. The served document is not the app shell.');
 }
-
-const container = resolveContainer();
 
 const tree = (
   <React.StrictMode>

@@ -63,8 +63,14 @@ function extractViteAssetTags(html) {
   }
 
   const head = html.slice(headStart, headEnd);
+
+  // The trailing `(?:<\/script>)?` matters more than it looks. A <script> with a
+  // src attribute is only inert once it is closed: an unclosed one puts the HTML
+  // parser into "script data" state, where every following tag — including the
+  // stylesheet link, </head>, <body> and #root — is swallowed as script text.
+  // The page then loads no CSS and the app cannot find its mount point.
   const tags = head.match(
-    /<script\b[^>]*\bsrc="\/assets\/[^"]*"[^>]*>|<link\b[^>]*\brel="(?:stylesheet|modulepreload)"[^>]*\bhref="\/assets\/[^"]*"[^>]*>/g,
+    /<script\b[^>]*\bsrc="\/assets\/[^"]*"[^>]*>(?:<\/script>)?|<link\b[^>]*\brel="(?:stylesheet|modulepreload)"[^>]*\bhref="\/assets\/[^"]*"[^>]*>/g,
   );
 
   return tags ?? [];
@@ -84,15 +90,32 @@ function replaceHead(html, head) {
  * itself. Shipping a page with no script tag is worse than failing loudly.
  */
 function assertAssetsPresent(document_, route, assetTags) {
-  const hasModuleScript = /<script\b[^>]*\bsrc="\/assets\/[^"]*\.js"/.test(document_);
+  // An earlier version of this check only looked for the opening <script> tag,
+  // which happily passed while that tag was left unclosed — and an unclosed
+  // <script> silently swallows the rest of the document. Require the close tag.
+  const hasClosedModuleScript = /<script\b[^>]*\bsrc="\/assets\/[^"]*\.js"[^>]*>\s*<\/script>/.test(
+    document_,
+  );
   const hasStylesheet = /<link\b[^>]*\brel="stylesheet"/.test(document_);
   const hasMountPoint = /<div id="root">/.test(document_);
 
-  if (!hasModuleScript || !hasStylesheet || !hasMountPoint || assetTags.length === 0) {
+  // Every <script> the head emits must be balanced, or the parser eats the body.
+  const openScripts = (document_.match(/<script\b/g) ?? []).length;
+  const closeScripts = (document_.match(/<\/script>/g) ?? []).length;
+  const scriptsBalanced = openScripts === closeScripts;
+
+  if (
+    !hasClosedModuleScript ||
+    !hasStylesheet ||
+    !hasMountPoint ||
+    !scriptsBalanced ||
+    assetTags.length === 0
+  ) {
     throw new Error(
       `Prerendered ${route.path} is incomplete ` +
-        `(module script: ${hasModuleScript}, stylesheet: ${hasStylesheet}, ` +
-        `#root: ${hasMountPoint}, asset tags: ${assetTags.length}). ` +
+        `(closed module script: ${hasClosedModuleScript}, stylesheet: ${hasStylesheet}, ` +
+        `#root: ${hasMountPoint}, <script> ${openScripts} open / ${closeScripts} closed, ` +
+        `asset tags: ${assetTags.length}). ` +
         `Refusing to write a page that cannot render, hydrate or mount.`,
     );
   }
