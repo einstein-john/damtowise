@@ -43,13 +43,82 @@ async function loadRenderer() {
   return mod;
 }
 
-/** Swaps the template's <head> for the route-specific one. */
+/**
+ * Extracts the tags Vite injects into <head> — the module entry script, its
+ * modulepreload hints and the stylesheet link.
+ *
+ * These MUST survive prerendering. Replacing <head> wholesale without carrying
+ * them over produces a page that is crawlable but has no CSS and no JavaScript:
+ * the markup is there, but nothing is styled and nothing hydrates.
+ *
+ * Only tags pointing at `/assets/` are captured. External stylesheets (the
+ * Google Fonts link in index.html) are already emitted by headFor(), and
+ * capturing them as well would emit a duplicate render-blocking request.
+ */
+function extractViteAssetTags(html) {
+  const headStart = html.indexOf('<head>');
+  const headEnd = html.indexOf('</head>');
+  if (headStart === -1 || headEnd === -1) {
+    throw new Error('Could not locate a <head> block in the built index.html.');
+  }
+
+  const head = html.slice(headStart, headEnd);
+
+  // The trailing `(?:<\/script>)?` matters more than it looks. A <script> with a
+  // src attribute is only inert once it is closed: an unclosed one puts the HTML
+  // parser into "script data" state, where every following tag — including the
+  // stylesheet link, </head>, <body> and #root — is swallowed as script text.
+  // The page then loads no CSS and the app cannot find its mount point.
+  const tags = head.match(
+    /<script\b[^>]*\bsrc="\/assets\/[^"]*"[^>]*>(?:<\/script>)?|<link\b[^>]*\brel="(?:stylesheet|modulepreload)"[^>]*\bhref="\/assets\/[^"]*"[^>]*>/g,
+  );
+
+  return tags ?? [];
+}
+
+/** Swaps the template's <head> for the route-specific one, plus Vite's tags. */
 function replaceHead(html, head) {
   const pattern = /<head>[\s\S]*?<\/head>/;
   if (!pattern.test(html)) {
     throw new Error('Could not find a <head> block in the built index.html.');
   }
   return html.replace(pattern, `<head>\n${head}\n  </head>`);
+}
+
+/**
+ * Fails the build if the document we just produced cannot style or hydrate
+ * itself. Shipping a page with no script tag is worse than failing loudly.
+ */
+function assertAssetsPresent(document_, route, assetTags) {
+  // An earlier version of this check only looked for the opening <script> tag,
+  // which happily passed while that tag was left unclosed — and an unclosed
+  // <script> silently swallows the rest of the document. Require the close tag.
+  const hasClosedModuleScript = /<script\b[^>]*\bsrc="\/assets\/[^"]*\.js"[^>]*>\s*<\/script>/.test(
+    document_,
+  );
+  const hasStylesheet = /<link\b[^>]*\brel="stylesheet"/.test(document_);
+  const hasMountPoint = /<div id="root">/.test(document_);
+
+  // Every <script> the head emits must be balanced, or the parser eats the body.
+  const openScripts = (document_.match(/<script\b/g) ?? []).length;
+  const closeScripts = (document_.match(/<\/script>/g) ?? []).length;
+  const scriptsBalanced = openScripts === closeScripts;
+
+  if (
+    !hasClosedModuleScript ||
+    !hasStylesheet ||
+    !hasMountPoint ||
+    !scriptsBalanced ||
+    assetTags.length === 0
+  ) {
+    throw new Error(
+      `Prerendered ${route.path} is incomplete ` +
+        `(closed module script: ${hasClosedModuleScript}, stylesheet: ${hasStylesheet}, ` +
+        `#root: ${hasMountPoint}, <script> ${openScripts} open / ${closeScripts} closed, ` +
+        `asset tags: ${assetTags.length}). ` +
+        `Refusing to write a page that cannot render, hydrate or mount.`,
+    );
+  }
 }
 
 function injectMarkup(html, appHtml) {
@@ -74,10 +143,21 @@ async function main() {
   // The client build already wrote a full index.html; use it as the shell so
   // every route shares the same body, script tags and asset references.
   const shell = await readFile(distIndex, 'utf8');
+  const assetTags = extractViteAssetTags(shell);
+
+  if (assetTags.length === 0) {
+    throw new Error(
+      'Found no Vite asset tags (module script / stylesheet) in dist/index.html. ' +
+        'The head replacement would strip them and produce an unstyled page.',
+    );
+  }
 
   for (const route of PRERENDER_ROUTES) {
     const { html: appHtml } = render(route.path);
-    const document_ = injectMarkup(replaceHead(shell, headFor(route)), appHtml);
+    const head = [headFor(route), ...assetTags].join('\n');
+    const document_ = injectMarkup(replaceHead(shell, head), appHtml);
+
+    assertAssetsPresent(document_, route, assetTags);
 
     const target = path.join(distDir, route.file);
     await mkdir(path.dirname(target), { recursive: true });
@@ -86,7 +166,8 @@ async function main() {
     const indexable = route.noindex ? 'noindex' : 'index';
     console.log(
       `  ${route.path.padEnd(8)} -> ${route.file.padEnd(16)} ${indexable}, ` +
-        `~${textContentOf(appHtml).length.toLocaleString()} chars of text`,
+        `~${textContentOf(appHtml).length.toLocaleString()} chars of text, ` +
+        `${assetTags.length} asset tags`,
     );
   }
 
