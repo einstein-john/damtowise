@@ -2,8 +2,10 @@ import React from 'react';
 import { ArrowLeft, ArrowRight, CalendarDays, Clock, Mail, Terminal } from 'lucide-react';
 import { Breadcrumbs } from '@/app/components/Breadcrumbs';
 import { ROUTES } from '@/app/data/routes';
+import { jsonLdFor } from '@/app/data/json-ld';
 import { ADMIN_HOTKEY_LABEL } from '@/app/lib/fyi/config';
 import { formatReadTime, formatShortDate } from '@/app/lib/fyi/format';
+import { upsertJsonLd } from '@/app/lib/head-tags';
 import { useFyiCatalog } from '@/app/lib/fyi/store';
 import {
   ChromeWindow,
@@ -167,6 +169,20 @@ export function FyiPage() {
       .filter((tag) => counts.has(tag.slug))
       .map((tag) => ({ ...tag, count: counts.get(tag.slug) ?? 0 }));
   }, [posts, tags]);
+
+  /**
+   * Structured data for the listing.
+   *
+   * The prerendered document already carries a `Blog` + `ItemList` describing
+   * every post the build resolved. After an in-app navigation, or once a live
+   * fetch has replaced the embedded catalogue, this rewrites the same graph so
+   * the live document never describes an archive the reader is not looking at.
+   */
+  React.useEffect(() => {
+    if (posts.length === 0) return;
+    const meta = ROUTES.find((entry) => entry.path === '/fyi/');
+    if (meta) upsertJsonLd(jsonLdFor(meta, posts));
+  }, [posts]);
 
   const visible = React.useMemo(() => {
     const needle = query.trim().toLowerCase();

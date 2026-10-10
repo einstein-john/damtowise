@@ -1,5 +1,11 @@
 import React from 'react';
-import { FyiApiError, getPost as getPostBySlug, listPosts, listTags, listWorklog } from './api';
+import {
+  FyiApiError,
+  getPost as getPostBySlug,
+  listAllPublishedPosts,
+  listTags,
+  listWorklog,
+} from './api';
 import { FYI_API_CONFIGURED } from './config';
 import { CATALOG_BOOTSTRAP_ID, CATALOG_POST_BOOTSTRAP_ID } from './bootstrap-id';
 import { fyiCatalog, publishedArticle } from './manifest';
@@ -76,7 +82,7 @@ export function FyiCatalogProvider({ children }: { children: React.ReactNode }) 
     // of articles.
     (async () => {
       const [posts, tags, worklog] = await Promise.allSettled([
-        listPosts({ page: 1, pageSize: 24 }),
+        listAllPublishedPosts().catch(() => [] as FyiPostSummary[]),
         listTags(),
         listWorklog(),
       ]);
@@ -88,7 +94,7 @@ export function FyiCatalogProvider({ children }: { children: React.ReactNode }) 
       );
 
       setValue({
-        posts: posts.status === 'fulfilled' ? posts.value.items : [],
+        posts: posts.status === 'fulfilled' ? posts.value : [],
         tags: tags.status === 'fulfilled' ? tags.value : [],
         worklog: worklog.status === 'fulfilled' ? worklog.value : [],
         state: failed.length === 0 ? 'ready' : 'error',

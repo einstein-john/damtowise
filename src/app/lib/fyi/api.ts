@@ -96,11 +96,39 @@ const query = (params: Record<string, string | number | undefined>) => {
 
 /* ── Public reads ─────────────────────────────────────────────────────────── */
 
-/** Published posts, newest first. */
+/**
+ * Published posts, newest first.
+ *
+ * The API caps `pageSize` at 50, which is why `listAllPublishedPosts` exists:
+ * the listing must page rather than trust one response.
+ */
 export function listPosts(params?: { tag?: string; page?: number; pageSize?: number }) {
   return request<FyiPage<FyiPostSummary>>(`/posts${query({ ...params })}`, {
     headers: JSON_HEADERS,
   });
+}
+
+/**
+ * Every published post, not just the first page.
+ *
+ * A blog with more posts than one page would otherwise leave the older ones
+ * unlinked from `/fyi/`, which makes them orphans as far as a crawler is
+ * concerned. Paging until the payload is exhausted keeps the `ItemList` in the
+ * index a complete crawl map, with `maxPages` as the bound.
+ */
+export async function listAllPublishedPosts(maxPages = 10): Promise<FyiPostSummary[]> {
+  const posts: FyiPostSummary[] = [];
+  let page = 1;
+  let total = Number.POSITIVE_INFINITY;
+
+  while (posts.length < total && page <= maxPages) {
+    const payload = await listPosts({ page, pageSize: 50 });
+    posts.push(...payload.items);
+    total = payload.total;
+    page += 1;
+  }
+
+  return posts;
 }
 
 /** A published post by slug. 404 for anything unpublished — the API never hints. */

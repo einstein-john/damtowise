@@ -105,6 +105,29 @@ export function FyiArticlePage({ path }: { path: string }) {
     <>
       <article className="mx-auto max-w-[1100px] px-6 py-space-xl">
         <div className="mb-space-xl flex flex-col gap-space-md">
+          {/* Rendered breadcrumbs, not just a back link: a crawler and a
+              screen reader both need the path to the article, and Google shows
+              a `BreadcrumbList` trail in the result when the page renders it. */}
+          <nav aria-label="Breadcrumb" className="font-label text-label-sm text-fyi-ink-faint">
+            <ol className="flex list-none flex-wrap items-center gap-space-xs p-0">
+              <li>
+                <a href="/" className="transition-colors hover:text-fyi-flame">
+                  Home
+                </a>
+              </li>
+              <li aria-hidden="true">/</li>
+              <li>
+                <a href="/fyi/" className="transition-colors hover:text-fyi-flame">
+                  FYI
+                </a>
+              </li>
+              <li aria-hidden="true">/</li>
+              <li aria-current="page" className="text-fyi-ink-dim">
+                {post.title}
+              </li>
+            </ol>
+          </nav>
+
           <div className="flex items-center justify-between gap-space-md">
             <a
               href="/fyi/"
@@ -144,7 +167,9 @@ export function FyiArticlePage({ path }: { path: string }) {
             <div className="flex items-center gap-space-md text-fyi-ink-faint">
               <span className="flex items-center gap-1">
                 <CalendarDays className="h-4 w-4 text-fyi-flame" aria-hidden="true" />
-                {formatDate(post.publishedAt ?? post.updatedAt)}
+                <time dateTime={post.publishedAt ?? post.updatedAt}>
+                  {formatDate(post.publishedAt ?? post.updatedAt)}
+                </time>
               </span>
               <span aria-hidden="true">•</span>
               <span className="flex items-center gap-1">

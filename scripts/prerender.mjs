@@ -159,6 +159,9 @@ const textContentOf = (markup) =>
     .replace(/\s+/g, ' ')
     .trim();
 
+/** FYI index path, duplicated from `src/app/data/routes.ts` for the build step. */
+const FYI_PATH = '/fyi/';
+
 async function main() {
   const renderer = await loadRenderer();
   const {
@@ -170,6 +173,7 @@ async function main() {
     sitemapXml,
     sitemapEntries,
     PRERENDER_ROUTES,
+    staticRouteMetaFor,
     loadFyiArticles,
     prerenderArticleRoutes,
     articleBootstrap,
@@ -179,9 +183,10 @@ async function main() {
     CATALOG_BOOTSTRAP_ID,
   } = renderer;
 
-  // The FYI API owns which posts are public. A failure here is logged by the
-  // renderer and leaves the build with the static routes only.
+  // The FYI API owns which posts are public; a build-time /fyi/ index with no
+  // articles in it is marked noindex by `staticRouteMetaFor`.
   if (typeof loadFyiArticles === 'function') await loadFyiArticles();
+  const indexMeta = typeof staticRouteMetaFor === 'function' ? staticRouteMetaFor(FYI_PATH) : null;
   const articleRoutes =
     typeof prerenderArticleRoutes === 'function' ? prerenderArticleRoutes() : [];
   const bootstrap = typeof articleBootstrap === 'function' ? articleBootstrap : () => null;
@@ -201,8 +206,11 @@ async function main() {
   }
 
   for (const route of PRERENDER_ROUTES) {
+    // The /fyi/ index needs the build's own verdict on whether the blog has
+    // content to rank; every other static route uses its declared metadata.
+    const meta = route.path === FYI_PATH && indexMeta ? indexMeta : route;
     const { html: appHtml } = render(route.path);
-    const head = [headFor(route), ...assetTags].join('\n');
+    const head = [headFor(meta), ...assetTags].join('\n');
     const document_ = injectBootstrap(injectMarkup(replaceHead(shell, head), appHtml), [
       { id: CATALOG_BOOTSTRAP_ID ?? 'fyi-catalog', value: catalog() },
     ]);

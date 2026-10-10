@@ -11,7 +11,7 @@ import {
   jsonLdFor,
 } from '@/app/data/json-ld';
 import { PROJECTS } from '@/app/data/projects';
-import { ROUTES, type RouteMeta } from '@/app/data/routes';
+import { ROUTES, FYI_PATH, type RouteMeta } from '@/app/data/routes';
 import { SITE, PERSON, absoluteUrl } from '@/app/data/site';
 import { ARTICLE_BOOTSTRAP_ID, CATALOG_BOOTSTRAP_ID } from '@/app/lib/fyi/bootstrap-id';
 import { setFyiCatalog, fyiCatalog } from '@/app/lib/fyi/manifest';
@@ -172,7 +172,7 @@ export function render(path = '/'): { html: string } {
 
 /** JSON-LD graph for a static route. */
 export function jsonLdForRoute(route: RouteMeta): string {
-  return JSON.stringify(jsonLdFor(route), null, 2);
+  return JSON.stringify(jsonLdFor(route, articles), null, 2);
 }
 
 /** Full <head> contents for a route, as an HTML string. */
@@ -183,11 +183,42 @@ export function headFor(route: RouteMeta): string {
   });
 }
 
-/** Full <head> for an article, with its own BlogPosting graph. */
+/**
+ * Full <head> for an article, with its own BlogPosting graph.
+ *
+ * The Open Graph article block mirrors the JSON-LD: Facebook, LinkedIn and
+ * Slack read `article:published_time`/`article:author`/`article:tag`, and a
+ * card that only says "article" with no dates is a card that renders as a
+ * generic web page.
+ */
 export function articleHeadFor(post: FyiPostDetail): string {
   return renderHead(articleRouteMeta(post), {
     jsonLd: JSON.stringify(articleJsonLdFor(post), null, 2),
+    article: {
+      publishedTime: post.publishedAt,
+      modifiedTime: post.updatedAt,
+      authors: [PERSON.name],
+      tags: post.tags.map((tag) => tag.name),
+      section: post.tags[0]?.name,
+    },
   });
+}
+
+/**
+ * The FYI index as the build should write it.
+ *
+ * A build that could not reach the API has an index document with no articles
+ * in it, and that is exactly the thin page that must not be indexed. The live
+ * document still follows `FYI_HAS_POSTS`, so a successful build and a failed
+ * build disagree only in the failure case — where noindex is the right answer.
+ */
+export function staticRouteMetaFor(path: string): RouteMeta {
+  const route = ROUTES.find((entry) => entry.path === path);
+  if (!route) throw new Error(`No static route is registered for ${path}`);
+  if (route.path === FYI_PATH && articles.length === 0) {
+    return { ...route, noindex: true };
+  }
+  return route;
 }
 
 /**
