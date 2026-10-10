@@ -5,7 +5,7 @@ function techIcon(name: string): React.ReactNode {
   const className = 'w-full h-full';
   if (name === 'TypeScript') {
     return (
-      <svg viewBox="0 0 256 256" className={className} fill="currentColor" role="img">
+      <svg viewBox="0 0 256 256" className={className} fill="currentColor" aria-hidden="true">
         <rect width="256" height="256" fill="currentColor" fillOpacity="0.1" rx="28" />
         <path
           d="M20 20h216v216H20V20zm198.5 188.5l-52-180.5h-15l52 180.5h15zM128 128h-48v15h48v-15zm-48-30h48v-15h-48v15zm48 75h-48v15h48v-15z"
@@ -28,14 +28,14 @@ function techIcon(name: string): React.ReactNode {
 
   if (name === 'Node.js') {
     return (
-      <svg viewBox="0 0 256 256" className={className} fill="currentColor" role="img">
+      <svg viewBox="0 0 256 256" className={className} fill="currentColor" aria-hidden="true">
         <path d="M128 18.5c-5.9 0-11.7 1.6-16.8 4.5L36.9 66.8c-10.4 6-16.8 17.1-16.8 29.2v64c0 12.1 6.4 23.2 16.8 29.2l74.3 43.8c5.1 2.9 10.9 4.5 16.8 4.5s11.7-1.6 16.8-4.5l74.3-43.8c10.4-6 16.8-17.1 16.8-29.2V96c0-12.1-6.4-23.2-16.8-29.2l-74.3-43.8c-5.1-2.9-10.9-4.5-16.8-4.5zm0 20c3.4 0 6.8.9 9.7 2.6l74.3 43.8c6 3.5 9.7 9.9 9.7 16.9v64c0 7-3.7 13.4-9.7 16.9L137.7 226c-2.9 1.7-6.3 2.6-9.7 2.6s-6.8-.9-9.7-2.6l-74.3-43.8c-6-3.5-9.7-9.9-9.7-16.9V96c0-7 3.7-13.4 9.7-16.9l74.3-43.8c2.9-1.7 6.3-2.6 9.7-2.6z" />
       </svg>
     );
   }
 
   return (
-    <svg viewBox="0 0 256 256" className={className} fill="currentColor" role="img">
+    <svg viewBox="0 0 256 256" className={className} fill="currentColor" aria-hidden="true">
       <path d="M128 32L32 96v64l96 64 96-64V96L128 32zm0 28l68 45.3v42.4L128 193l-68-45.3v-42.4L128 60z" />
       <circle cx="80" cy="128" r="16" />
       <circle cx="128" cy="90" r="16" />
