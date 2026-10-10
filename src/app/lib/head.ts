@@ -46,6 +46,17 @@ export interface HeadOptions {
   jsonLd: string;
   /** Profile/Open Graph tags only apply to the home page. */
   includeProfile?: boolean;
+  /**
+   * Open Graph article metadata. Optional because only FYI articles have it,
+   * and `og:type=article` without these reads as a half-declared article.
+   */
+  article?: {
+    publishedTime?: string | null;
+    modifiedTime?: string | null;
+    authors?: string[];
+    tags?: string[];
+    section?: string;
+  };
 }
 
 export function renderHead(route: RouteMeta, options: HeadOptions): string {
@@ -72,6 +83,27 @@ export function renderHead(route: RouteMeta, options: HeadOptions): string {
     '    <meta property="og:image:height" content="630" />',
     `    <meta property="og:image:alt" content="${escapeHtml(route.ogImageAlt)}" />`,
   ];
+
+  if (options.article) {
+    const article = options.article;
+    const tags: Array<[string, string]> = [];
+    if (article.publishedTime) tags.push(['article:published_time', article.publishedTime]);
+    if (article.modifiedTime) tags.push(['article:modified_time', article.modifiedTime]);
+    if (article.section) tags.push(['article:section', article.section]);
+    for (const author of article.authors ?? []) tags.push(['article:author', author]);
+    for (const tag of article.tags ?? []) tags.push(['article:tag', tag]);
+
+    if (tags.length > 0) {
+      parts.push(
+        '',
+        '    <!-- Article metadata -->',
+        ...tags.map(
+          ([property, content]) =>
+            `    <meta property="${property}" content="${escapeHtml(content)}" />`,
+        ),
+      );
+    }
+  }
 
   if (options.includeProfile) {
     parts.push(
