@@ -11,37 +11,52 @@ posthog.init(import.meta.env.VITE_PUBLIC_POSTHOG_TOKEN, {
   defaults: '2026-01-30',
 });
 
-const container = document.getElementById('root')!;
+/**
+ * Resolve the mount point, creating it if the document doesn't have one.
+ *
+ * This used to be `getElementById('root')!`. A non-null assertion only
+ * silences TypeScript — it does nothing at runtime, so any document served
+ * without the mount point (stale cached HTML, a host serving a different
+ * shell, a 404 document) threw `TypeError: Cannot read properties of null`
+ * before React ever mounted, leaving a blank page with no error boundary in
+ * sight. Recreating the node is two lines and turns a total failure into a
+ * working page.
+ */
+function resolveContainer(): HTMLElement {
+  const existing = document.getElementById('root');
+  if (existing) return existing;
+
+  const created = document.createElement('div');
+  created.id = 'root';
+  document.body.prepend(created);
+  console.warn('[app] #root was missing from the document; created a fresh mount point.');
+  return created;
+}
+
+const container = resolveContainer();
+
+const tree = (
+  <React.StrictMode>
+    <PostHogProvider client={posthog}>
+      <App />
+    </PostHogProvider>
+  </React.StrictMode>
+);
 
 /**
- * `npm run build` prerenders the app into index.html, so crawlers and social
- * scrapers see real content without running JavaScript. When that markup is
- * present we hydrate it in place rather than re-rendering, which avoids a
- * flash of empty page while the bundle downloads. A dev server (or any host
- * serving a hand-written index.html) has no markup, so it mounts normally.
+ * `npm run build` prerenders the app into each route's HTML, so crawlers and
+ * social scrapers see real content without running JavaScript. When that
+ * markup is present we hydrate it in place instead of re-rendering, which
+ * avoids a flash of empty page while the bundle downloads.
  *
- * SSR and the first client render produce identical output — every
- * browser-only concern lives in an effect or an event handler — so hydration
- * should always match. If it ever doesn't, React falls back to a client
- * render on its own.
+ * Hydration is an optimisation, not a requirement: if the markup does not
+ * match, React recovers by rendering on the client. A document with no
+ * prerendered markup (dev server, hand-written HTML) mounts normally.
  */
-const isPrerendered = container.childElementCount > 0;
+const hasPrerenderedMarkup = container.childElementCount > 0;
 
-if (isPrerendered) {
-  hydrateRoot(
-    container,
-    <React.StrictMode>
-      <PostHogProvider client={posthog}>
-        <App />
-      </PostHogProvider>
-    </React.StrictMode>,
-  );
+if (hasPrerenderedMarkup) {
+  hydrateRoot(container, tree);
 } else {
-  createRoot(container).render(
-    <React.StrictMode>
-      <PostHogProvider client={posthog}>
-        <App />
-      </PostHogProvider>
-    </React.StrictMode>,
-  );
+  createRoot(container).render(tree);
 }

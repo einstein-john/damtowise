@@ -86,13 +86,14 @@ function replaceHead(html, head) {
 function assertAssetsPresent(document_, route, assetTags) {
   const hasModuleScript = /<script\b[^>]*\bsrc="\/assets\/[^"]*\.js"/.test(document_);
   const hasStylesheet = /<link\b[^>]*\brel="stylesheet"/.test(document_);
+  const hasMountPoint = /<div id="root">/.test(document_);
 
-  if (!hasModuleScript || !hasStylesheet || assetTags.length === 0) {
+  if (!hasModuleScript || !hasStylesheet || !hasMountPoint || assetTags.length === 0) {
     throw new Error(
-      `Prerendered ${route.path} is missing build assets ` +
+      `Prerendered ${route.path} is incomplete ` +
         `(module script: ${hasModuleScript}, stylesheet: ${hasStylesheet}, ` +
-        `tags carried over: ${assetTags.length}). Refusing to write a page that ` +
-        `cannot render or hydrate.`,
+        `#root: ${hasMountPoint}, asset tags: ${assetTags.length}). ` +
+        `Refusing to write a page that cannot render, hydrate or mount.`,
     );
   }
 }
