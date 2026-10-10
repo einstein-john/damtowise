@@ -1,26 +1,49 @@
 import React from 'react';
 import { createRoot, hydrateRoot } from 'react-dom/client';
-import posthog from 'posthog-js';
+import type posthogType from 'posthog-js';
 import { PostHogProvider } from '@posthog/react';
 
 import App from '@/app/App';
 import '@/styles/index.css';
 
 /**
- * Defer PostHog until after first paint so its polyfills and recorder bundle
- * never block LCP or contribute to total blocking time.
+ * PostHog is loaded asynchronously so its polyfills, recorder and surveys
+ * never enter the main chunk or block first paint. The app renders without
+ * it; once ready, the provider wraps the tree and recording starts.
  */
-function initPostHog() {
-  posthog.init(import.meta.env.VITE_PUBLIC_POSTHOG_TOKEN, {
+let posthogClient: typeof posthogType | null = null;
+
+async function loadPostHog() {
+  const mod = await import('posthog-js');
+  const client = mod.default;
+  client.init(import.meta.env.VITE_PUBLIC_POSTHOG_TOKEN, {
     api_host: import.meta.env.VITE_PUBLIC_POSTHOG_HOST,
     defaults: '2026-01-30',
   });
+  posthogClient = client;
+  // Force a re-render so PostHogProvider picks up the client.
+  window.dispatchEvent(new Event('posthog:ready'));
 }
 
 if (document.readyState === 'complete') {
-  initPostHog();
+  void loadPostHog();
 } else {
-  window.addEventListener('load', initPostHog, { once: true });
+  window.addEventListener('load', () => void loadPostHog(), { once: true });
+}
+
+function Root() {
+  const [ready, setReady] = React.useState(false);
+  React.useEffect(() => {
+    const onReady = () => setReady(true);
+    window.addEventListener('posthog:ready', onReady, { once: true });
+    return () => window.removeEventListener('posthog:ready', onReady);
+  }, []);
+  if (!ready || !posthogClient) return null;
+  return (
+    <PostHogProvider client={posthogClient}>
+      <App />
+    </PostHogProvider>
+  );
 }
 
 const container = document.getElementById('root');
@@ -30,9 +53,7 @@ if (!container) {
 
 const tree = (
   <React.StrictMode>
-    <PostHogProvider client={posthog}>
-      <App />
-    </PostHogProvider>
+    <Root />
   </React.StrictMode>
 );
 
