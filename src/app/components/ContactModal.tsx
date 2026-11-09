@@ -121,7 +121,7 @@ export function ContactModal({ isOpen, onClose }: ContactModalProps) {
           </div>
 
           {/* Footer note */}
-          <p className="text-center text-sm text-[#666] mt-6 font-mono">
+          <p className="text-center text-sm text-[#999] mt-6 font-mono">
             Feel free to reach out through any platform
           </p>
         </div>

@@ -32,18 +32,25 @@ if (document.readyState === 'complete') {
 }
 
 function Root() {
-  const [ready, setReady] = React.useState(false);
+  const [client, setClient] = React.useState<typeof posthogType | null>(posthogClient);
   React.useEffect(() => {
-    const onReady = () => setReady(true);
-    window.addEventListener('posthog:ready', onReady, { once: true });
-    return () => window.removeEventListener('posthog:ready', onReady);
+    if (posthogClient) {
+      setClient(posthogClient);
+    } else {
+      const onReady = () => setClient(posthogClient);
+      window.addEventListener('posthog:ready', onReady, { once: true });
+      return () => window.removeEventListener('posthog:ready', onReady);
+    }
   }, []);
-  if (!ready || !posthogClient) return null;
-  return (
-    <PostHogProvider client={posthogClient}>
-      <App />
-    </PostHogProvider>
-  );
+
+  if (client) {
+    return (
+      <PostHogProvider client={client}>
+        <App />
+      </PostHogProvider>
+    );
+  }
+  return <App />;
 }
 
 const container = document.getElementById('root');

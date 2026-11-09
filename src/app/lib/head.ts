@@ -22,10 +22,12 @@ const SHARED = `    <meta charset="UTF-8" />
 
     <!-- Fonts are preconnected so the stylesheet request starts on a warm TLS
          connection rather than queuing behind the app CSS. display=swap means
-         text paints immediately in the fallback stack. -->
+         text paints immediately in the fallback stack. Loaded non-blocking via media="print". -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="stylesheet" href="${FONT_HREF}" />
+    <link rel="preload" as="style" href="${FONT_HREF}" />
+    <link rel="stylesheet" href="${FONT_HREF}" media="print" onload="this.media='all'" />
+    <noscript><link rel="stylesheet" href="${FONT_HREF}" /></noscript>
 
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />

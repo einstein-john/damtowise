@@ -30,12 +30,12 @@ console.log(\`Hello! I'm \${engineer.name}\`);`;
       </div>
 
       {/* Terminal Body */}
-      <div className="bg-[#0a0a0a] rounded-b-lg border border-[#333] p-4 sm:p-6 overflow-x-hidden">
+      <div className="bg-[#0a0a0a] rounded-b-lg border border-[#333] p-4 sm:p-6 overflow-x-hidden min-h-[360px] sm:min-h-[420px]">
         <pre className="text-xs sm:text-sm leading-relaxed">
           <code className="font-mono">
             {code.split('\n').map((line, index) => (
               <div key={index} className="flex items-start">
-                <span className="text-[#666] select-none mr-3 sm:mr-4 text-right inline-block w-6 shrink-0">
+                <span className="text-[#888] select-none mr-3 sm:mr-4 text-right inline-block w-6 shrink-0">
                   {index + 1}
                 </span>
                 <span className="text-[#e0e0e0] min-w-0 whitespace-pre-wrap break-words">

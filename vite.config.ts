@@ -35,6 +35,7 @@ export default defineConfig({
           if (!id.includes('node_modules')) return;
 
           // Note: keep chunking coarse to avoid circular-chunk warnings.
+          if (id.includes('posthog')) return 'posthog-vendor';
           if (id.includes('postprocessing')) return 'postprocessing-vendor';
           if (id.includes('three')) return 'three-vendor';
 

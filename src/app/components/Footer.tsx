@@ -110,7 +110,7 @@ export function Footer() {
         </div>
 
         <div className="border-t border-[#1a1a1a] pt-6 text-center">
-          <p className="text-[#666] text-sm">
+          <p className="text-[#999] text-sm">
             &copy; {year} Damtowise. Built with TypeScript, React and n8n.
           </p>
         </div>

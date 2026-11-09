@@ -1,5 +1,5 @@
 /**
- * Fonts are loaded from a <link rel="stylesheet"> in index.html, with
+ * Fonts are loaded from a non-blocking <link> in index.html, with
  * preconnect hints alongside it. The @import that used to live here forced the
  * browser to discover the font request only after the app CSS had downloaded
  * and parsed, which pushed it straight onto the critical path for LCP.
